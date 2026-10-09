@@ -51,10 +51,10 @@
     <h2>While you wait, you can try</h2>
     <ul>{% for item in d.checklist %}<li>{{ item }}</li>{% endfor %}</ul>
   {% endif %}
-</div>
 
-<p>
-  <a class="button" href="{{ url_for('main.form') }}">New request</a>
-  &nbsp; <a href="{{ url_for('main.tickets') }}">View ticket log</a>
-</p>
+  <div class="actions">
+    <a class="button" href="{{ url_for('main.form') }}">New request</a>
+    <a href="{{ url_for('main.tickets') }}">View ticket log</a>
+  </div>
+</div>
 {% endblock %}

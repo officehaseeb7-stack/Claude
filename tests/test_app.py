@@ -372,3 +372,10 @@ def test_pages_use_the_inter_font(client):
     html = client.get("/").get_data(as_text=True)
     assert "fonts.googleapis.com/css2?family=Inter" in html
     assert '--font-body: "Inter"' in html
+
+
+def test_header_marks_the_current_page(client):
+    body = lambda path: client.get(path).get_data(as_text=True).split("<body>")[1]   # ignore the CSS
+    form, log = body("/"), body("/tickets")
+    assert form.count('aria-current="page"') == 1 and 'aria-current="page">New request' in form
+    assert log.count('aria-current="page"') == 1 and 'aria-current="page">Ticket log' in log

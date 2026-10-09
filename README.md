@@ -158,33 +158,35 @@ Also worth trying: night plus an offline vehicle (V-1002 with the night clock) i
 
 ## Look and feel
 
-Colours and fonts live in one place: the `THEME` block at the top of `webapp/templates/base.html`.
-
-**Colours** follow the 1now.ai site. They were sampled from a screenshot (the site could not be
-reached from the build environment), so treat them as close, not exact:
+An **orange-and-white** portal: an orange page and header, with content on white cards. This mirrors
+the orange band with a white card on 1now.ai. Colours and fonts live in one place: the `THEME` block
+at the top of `webapp/templates/base.html`.
 
 | Use | Value | Source |
 |---|---|---|
-| Main text and headings | `#14253A` | Exact: read from the site's computed style |
-| Orange (buttons, accents) | `#F47845` | Sampled from the screenshot |
-| Header bar | `#121F2F` | Sampled |
-| Page background / cards | `#FAF8F4` / `#FFFFFF` | Sampled |
-| Darker orange for small text and links | `#B8481A` | Derived, so it passes contrast on white |
-| Muted text, borders, hover orange, tints | `#5E6B7A`, `#E7E2D8`, `#E4642F`, `#FDF1E9` | Derived |
+| Orange (page, header, buttons) | `#F47845` | Sampled from a screenshot of 1now.ai (close, not exact) |
+| Cards, header text, active-page pill | `#FFFFFF` | |
+| Body text on white | `#9A3A12` | Derived: deep burnt orange |
+| Headings, links, section labels | `#B8481A` | Derived: deeper orange that passes contrast on white |
+| Muted text, borders, hover orange, tint | `#A9502A`, `#F3D9CB`, `#E4642F`, `#FDF1E9` | Derived |
+| **Urgent banner and error messages** | `#B3261E` (red) | The only non-orange colour, on purpose, so it cannot be missed |
 
-Style choices copied from the site: dark navy header, pill-shaped orange buttons, large rounded
-white cards with soft shadows, and small orange uppercase section labels. The urgent banner stays
-**red** on purpose, so it cannot be mistaken for the orange brand colour. A dark-mode palette is
-included.
+Style choices copied from the site: pill-shaped buttons, large rounded cards with soft shadows, and
+small uppercase section labels. The current page shows as a white pill in the header. There is no
+dark mode: the portal is orange and white throughout.
 
-**Known gap: white text on the orange buttons has a contrast ratio of 2.76:1** (WCAG asks for 4.5:1).
-That matches the site, so it is the default. To fix it, set `--on-brand: #14253A` in the theme
-block, which gives 5.62:1. Every other colour pair passes.
+Because there is no green, blue or yellow, the status banners (resolved, one detail needed, passed
+to a person) look alike; the headline wording carries the meaning. Only URGENT is visually different
+(red with a white frame).
+
+**Known gap: white text on orange (the buttons and the header) has a contrast ratio of 2.76:1**
+(WCAG asks for 4.5:1). That matches the site, so it is the default. To fix it, set `--on-brand` and
+`--on-topbar` to `#14253A` (5.62:1). All other text on white passes.
 
 **Font: Inter** (headings and body), loaded from Google Fonts. It needs an internet connection the
 first time a page loads; without one the browser falls back to the system font and everything still
-works. The font link is in `base.html`, and the font names are `--font-body` / `--font-heading` in
-the theme block.
+works. The font link is in `base.html`, and the names are `--font-body` / `--font-heading` in the
+theme block.
 
 ## Project layout
 

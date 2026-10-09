@@ -8,67 +8,61 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
   <style>
-    /* THEME: every colour and font below comes from the variables in this block.
-       Colours were sampled from a screenshot of 1now.ai; the font is Inter, loaded from Google
+    /* THEME: an orange-and-white portal. Every colour and font below comes from these variables.
+       Orange is sampled from a screenshot of 1now.ai; the font is Inter, loaded from Google
        Fonts by the <link> above (see README, "Look and feel"). */
     :root {
       --font-body: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
       --font-heading: var(--font-body);
 
-      --brand: #F47845;          /* orange: buttons, accents (sampled) */
+      --brand: #F47845;          /* orange: page, header, buttons (sampled) */
       --brand-hover: #E4642F;    /* derived: slightly deeper orange */
-      --on-brand: #FFFFFF;       /* text on orange buttons */
-      --brand-text: #B8481A;     /* derived: orange dark enough to read as small text on light backgrounds */
+      --on-brand: #FFFFFF;       /* white text on orange */
+      --brand-text: #B8481A;     /* derived: deep orange for headings, links and small text on white */
       --brand-tint: #FDF1E9;     /* derived: very light orange wash */
 
-      --topbar: #121F2F;         /* header: dark navy (sampled) */
+      --bg: var(--brand);        /* the page itself is orange... */
+      --card: #FFFFFF;           /* ...and content sits on white cards */
+      --topbar: var(--brand);
       --on-topbar: #FFFFFF;
-      --bg: #FAF8F4;             /* page: warm off-white (sampled) */
-      --card: #FFFFFF;           /* cards (sampled) */
-      --text: #14253A;           /* body and headings (exact, from the site's computed style) */
-      --muted: #5E6B7A;          /* derived: softer navy-grey */
-      --line: #E7E2D8;           /* derived: warm hairline */
-      --shadow: 0 8px 24px rgba(20, 37, 58, .07);
+      --text: #9A3A12;           /* derived: deep burnt orange for body text on white */
+      --heading: var(--brand-text);
+      --muted: #A9502A;          /* derived: softer burnt orange */
+      --line: #F3D9CB;           /* derived: pale orange hairline */
+      --shadow: 0 10px 28px rgba(122, 46, 14, .20);
       --link: var(--brand-text);
       --radius-card: 16px;
       --radius-field: 10px;
 
-      --good: #17663A;   --good-bg: #E3F3EA;
-      --info: #14253A;   --info-bg: #E6ECF4;
-      --warn: #8A3510;   --warn-bg: #FDE9DC;
-      --urgent: #FFFFFF; --urgent-bg: #B3261E;
+      --urgent: #FFFFFF; --urgent-bg: #B3261E;   /* the one non-orange colour: red, so urgent cannot be missed */
       --err: #B3261E;
-    }
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --topbar: #0B131C; --bg: #101213; --card: #181A1C; --text: #F4F1EA; --muted: #A9B0BA;
-        --line: #2C3033; --shadow: 0 8px 24px rgba(0, 0, 0, .35);
-        --brand-tint: #2A1A12; --link: #FF9A6B;
-        --good: #8FE0AE; --good-bg: #14301F; --info: #D4E3F6; --info-bg: #17263A;
-        --warn: #FFC9A6; --warn-bg: #3A2312; --urgent-bg: #C23B31; --err: #FF8A82;
-      }
     }
     * { box-sizing: border-box; }
     body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.55 var(--font-body); }
-    .topbar { background: var(--topbar); color: var(--on-topbar); }
+    .topbar { background: var(--topbar); color: var(--on-topbar); border-bottom: 1px solid rgba(255, 255, 255, .35); }
     header, main, footer { max-width: 760px; margin: 0 auto; padding: 0 16px; }
-    header { display: flex; flex-wrap: wrap; gap: 8px 22px; align-items: center; padding-top: 16px; padding-bottom: 16px; }
-    header strong { font-family: var(--font-heading); font-size: 1.1rem; margin-right: auto; letter-spacing: .01em; }
-    header a { color: var(--on-topbar); text-decoration: none; font-weight: 600; font-size: .95rem; }
-    header a:hover { color: var(--brand); }
+    header { display: flex; flex-wrap: wrap; gap: 8px 6px; align-items: center; padding-top: 14px; padding-bottom: 14px; }
+    header strong { font-family: var(--font-heading); font-size: 1.25rem; font-weight: 800; letter-spacing: -.01em; margin-right: auto; }
+    header a { color: var(--on-topbar); text-decoration: none; font-weight: 600; font-size: .95rem;
+               padding: 7px 14px; border-radius: 999px; }
+    header a:hover { text-decoration: underline; text-underline-offset: 4px; }
+    /* the page you are on: white pill, deep-orange text */
+    header a[aria-current="page"] { background: #fff; color: var(--brand-text); }
+    header a:focus-visible { outline-color: #fff; }
     a { color: var(--link); }
-    main { padding-top: 24px; padding-bottom: 32px; }
-    footer { color: var(--muted); font-size: .85rem; padding-bottom: 24px; }
+    main { padding-top: 24px; padding-bottom: 12px; }
+    footer { padding-bottom: 28px; }
+    .clock { display: inline-block; margin: 0; background: #fff; color: var(--muted); border-radius: 999px;
+             padding: 6px 14px; font-size: .85rem; }
     .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-card);
             box-shadow: var(--shadow); padding: 24px; margin-bottom: 16px; }
-    h1, h2 { font-family: var(--font-heading); }
+    h1, h2 { font-family: var(--font-heading); color: var(--heading); }
     h1 { font-size: 1.6rem; line-height: 1.2; letter-spacing: -.01em; margin: 0 0 8px; }
     /* small orange uppercase section labels, as on the 1now.ai site */
-    h2 { font-size: .78rem; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
-         color: var(--brand-text); margin: 22px 0 6px; }
+    h2 { font-size: .78rem; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; margin: 22px 0 6px; }
     label, legend { display: block; font-weight: 600; margin-bottom: 4px; }
-    input[type=text], textarea { width: 100%; padding: 11px 12px; font: inherit; color: inherit; background: var(--card);
-                                 border: 1px solid var(--line); border-radius: var(--radius-field); }
+    input[type=text], textarea { width: 100%; padding: 11px 12px; font: inherit; color: var(--text); background: #fff;
+                                 border: 1px solid #EDC3AC; border-radius: var(--radius-field); }
     input[type=text]:focus, textarea:focus { outline: 3px solid color-mix(in srgb, var(--brand) 45%, transparent);
                                              border-color: var(--brand); }
     textarea { min-height: 84px; }
@@ -84,16 +78,17 @@
                       text-decoration: none; cursor: pointer; box-shadow: 0 6px 16px rgba(244, 120, 69, .30); }
     button:hover, .button:hover { background: var(--brand-hover); }
     button:focus-visible, .button:focus-visible, a:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
-    .banner { border-radius: var(--radius-card); padding: 18px 22px; margin-bottom: 16px; }
+    .actions { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
+    .actions .button { margin-right: 14px; }
+    /* status banners: white with an orange edge; only URGENT is red, with a white frame to stand out on orange */
+    .banner { background: #fff; color: var(--text); border-radius: var(--radius-card); border-left: 10px solid var(--brand-hover);
+              box-shadow: var(--shadow); padding: 18px 22px; margin-bottom: 16px; }
     .banner h1 { margin: 0; }
-    .tone-good   { background: var(--good-bg);  color: var(--good); }
-    .tone-info   { background: var(--info-bg);  color: var(--info); }
-    .tone-warn   { background: var(--warn-bg);  color: var(--warn); }
-    .tone-urgent { background: var(--urgent-bg); color: var(--urgent); }
+    .tone-urgent { background: var(--urgent-bg); color: var(--urgent); border: 4px solid #fff; }
+    .tone-urgent h1 { color: var(--urgent); }
     .callnow { font-size: 1.15rem; font-weight: 700; margin: 8px 0 0; }
     .ask { border-left: 4px solid var(--brand); border-radius: 0 var(--radius-field) var(--radius-field) 0;
            padding: 14px 16px; background: var(--brand-tint); margin: 16px 0; }
-    .ask label { color: var(--text); }
     .ask .row { display: flex; gap: 8px; flex-wrap: wrap; }
     .ask .row input { flex: 1 1 220px; width: auto; }
     .ask.has-error input { border-color: var(--err); border-width: 2px; }
@@ -111,11 +106,11 @@
   <div class="topbar">
     <header>
       <strong>Vehicle lockout help</strong>
-      <a href="{{ url_for('main.form') }}">New request</a>
-      <a href="{{ url_for('main.tickets') }}">Ticket log</a>
+      <a href="{{ url_for('main.form') }}"{% if request.endpoint == 'main.form' %} aria-current="page"{% endif %}>New request</a>
+      <a href="{{ url_for('main.tickets') }}"{% if request.endpoint == 'main.tickets' %} aria-current="page"{% endif %}>Ticket log</a>
     </header>
   </div>
   <main>{% block content %}{% endblock %}</main>
-  <footer>Clock used for night checks: {{ clock_now }} ({{ clock_kind }}). Unlocks in this prototype are simulated.</footer>
+  <footer><p class="clock">Clock used for night checks: {{ clock_now }} ({{ clock_kind }}). Unlocks in this prototype are simulated.</p></footer>
 </body>
 </html>
