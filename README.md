@@ -181,9 +181,10 @@ included.
 That matches the site, so it is the default. To fix it, set `--on-brand: #14253A` in the theme
 block, which gives 5.62:1. Every other colour pair passes.
 
-**Fonts are not applied yet.** The typefaces could not be identified from a screenshot, so the app
-uses the system font. Once the names are known, set `--font-body` and `--font-heading` and add the
-font link above the `<style>` tag.
+**Font: Inter** (headings and body), loaded from Google Fonts. It needs an internet connection the
+first time a page loads; without one the browser falls back to the system font and everything still
+works. The font link is in `base.html`, and the font names are `--font-body` / `--font-heading` in
+the theme block.
 
 ## Project layout
 

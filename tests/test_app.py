@@ -366,3 +366,9 @@ def test_ticket_log_stays_in_staff_voice(client):
     follow(client, submit(client, safe_place="no"))
     html = text(client.get("/tickets"))
     assert "The renter may be in an unsafe situation" in html and "CALL NOW" in html
+
+
+def test_pages_use_the_inter_font(client):
+    html = client.get("/").get_data(as_text=True)
+    assert "fonts.googleapis.com/css2?family=Inter" in html
+    assert '--font-body: "Inter"' in html

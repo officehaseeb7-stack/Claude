@@ -4,13 +4,15 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Lockout help{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
   <style>
     /* THEME: every colour and font below comes from the variables in this block.
-       Colours were sampled from a screenshot of 1now.ai (see README, "Look and feel").
-       Fonts are NOT applied yet: set --font-body / --font-heading (and add a font link above
-       this <style>) once the exact typefaces are known. */
+       Colours were sampled from a screenshot of 1now.ai; the font is Inter, loaded from Google
+       Fonts by the <link> above (see README, "Look and feel"). */
     :root {
-      --font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      --font-body: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
       --font-heading: var(--font-body);
 
       --brand: #F47845;          /* orange: buttons, accents (sampled) */
