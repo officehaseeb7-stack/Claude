@@ -1,0 +1,7 @@
+{
+  "name": "lockout-recovery",
+  "version": "1.0.0",
+  "description": "Mid-rental lockout intake, triage and recovery flow for fleet operators (prototype)",
+  "scripts": { "start": "node server.js", "test": "node --test test/*.test.js" },
+  "license": "MIT"
+}
