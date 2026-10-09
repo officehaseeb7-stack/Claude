@@ -47,7 +47,7 @@ ACTION_REMOTE_UNLOCK = "remote_unlock"
 
 # Tickets in these statuses are finished or waiting on the operator, so they do not
 # count as "open" for duplicate detection.
-NON_OPEN_STATUSES = frozenset({"Resolved", "Awaiting info"})
+NON_OPEN_STATUSES = frozenset({"Resolved", "Awaiting info", "Closed"})
 
 # Findings are collected in decision order; the first one decides the route.
 _ROUTE_FOR_FINDING = {

@@ -1,4 +1,4 @@
-"""Pages: intake form, result screen, ticket log."""
+"""Pages: intake form, result screen (with the inline answer field), ticket log."""
 from __future__ import annotations
 
 from flask import Blueprint, abort, current_app, redirect, render_template, request, url_for
@@ -6,15 +6,16 @@ from flask import Blueprint, abort, current_app, redirect, render_template, requ
 from triage.engine import (
     ACTION_REMOTE_UNLOCK,
     DUPLICATE,
+    NEEDS_VERIFICATION,
     LockoutRequest,
     normalize_vehicle_id,
     triage,
 )
-from triage.messages import TICKET_STATUS, describe
+from triage.messages import ASK_FIELD, TICKET_STATUS, describe, staff_reason
 
 from . import simulate
 from .store import prior_lockouts
-from .validation import validate_form
+from .validation import validate_answer, validate_form
 
 bp = Blueprint("main", __name__)
 
@@ -23,45 +24,32 @@ def _store():
     return current_app.extensions["tickets"]
 
 
-@bp.get("/")
-def form():
-    return render_template("form.html", values={}, errors={})
+def _now():
+    return simulate.get_now(current_app.config["TRIAGE_NOW"])
 
 
-@bp.post("/")
-def submit():
-    values, errors = validate_form(request.form)
-    if errors:
-        return render_template("form.html", values=values, errors=errors), 400
-
+def _run_triage(lockout: LockoutRequest, now):
     fleet, store = current_app.extensions["fleet"], _store()
-    now = simulate.get_now(current_app.config["TRIAGE_NOW"])
-    lockout = LockoutRequest(
-        vehicle_id=values["vehicle_id"],
-        renter_name=values["renter_name"],
-        phone=values["phone"],
-        location=values["location"],
-        issue=values["issue"],
-        safe_place=values["safe_place"] == "yes",
-    )
     vid = normalize_vehicle_id(lockout.vehicle_id)
     tickets = store.all()
     rental = fleet.rental(vid)
-    decision = triage(lockout, fleet.vehicle(vid), rental, tickets,
-                      prior_lockouts(rental, tickets), now)
+    return triage(lockout, fleet.vehicle(vid), rental, tickets, prior_lockouts(rental, tickets), now)
 
-    if decision.route == DUPLICATE:
-        return redirect(url_for("main.duplicate", ticket_id=decision.related_ticket), code=303)
 
-    unlock_at = None
-    if ACTION_REMOTE_UNLOCK in decision.auto_actions:
-        result = simulate.remote_unlock(vid, now)
-        unlock_at = result["sent_at"]
-        current_app.logger.info("Simulated remote unlock sent to %s at %s", vid, unlock_at)
+def _send_unlock(decision, now) -> str | None:
+    """Perform the simulated unlock if the decision calls for one; return when it was sent."""
+    if ACTION_REMOTE_UNLOCK not in decision.auto_actions:
+        return None
+    result = simulate.remote_unlock(decision.vehicle_id, now)
+    current_app.logger.info("Simulated remote unlock sent to %s at %s",
+                            decision.vehicle_id, result["sent_at"])
+    return result["sent_at"]
 
+
+def _ticket_fields(lockout: LockoutRequest, decision, now, unlock_at) -> dict:
     fields = {
         "created_at": now.isoformat(timespec="seconds"),
-        "vehicle_id": vid,
+        "vehicle_id": decision.vehicle_id,
         "rental_id": decision.rental_id,
         "renter_name": lockout.renter_name,
         "phone": lockout.phone,
@@ -80,36 +68,102 @@ def submit():
         "unlock_at": unlock_at,
         "counts_as_lockout": decision.counts_as_lockout,
     }
-    fields["reason"] = describe(fields)["reason"]
-    ticket = store.add(fields)
+    fields["reason"] = staff_reason(fields)
+    return fields
+
+
+@bp.get("/")
+def form():
+    return render_template("form.html", values={}, errors={})
+
+
+@bp.post("/")
+def submit():
+    values, errors = validate_form(request.form)
+    if errors:
+        return render_template("form.html", values=values, errors=errors), 400
+
+    now = _now()
+    lockout = LockoutRequest(
+        vehicle_id=values["vehicle_id"],
+        renter_name=values["renter_name"],
+        phone=values["phone"],
+        location=values["location"],
+        issue=values["issue"],
+        safe_place=values["safe_place"] == "yes",
+    )
+    decision = _run_triage(lockout, now)
+    if decision.route == DUPLICATE:
+        return redirect(url_for("main.duplicate", ticket_id=decision.related_ticket), code=303)
+
+    unlock_at = _send_unlock(decision, now)
+    ticket = _store().add(_ticket_fields(lockout, decision, now, unlock_at))
     return redirect(url_for("main.result", ticket_id=ticket["id"]), code=303)
 
 
 @bp.get("/result/<ticket_id>")
 def result(ticket_id):
-    ticket = _store().get(ticket_id)
-    if ticket is None:
-        abort(404)
-    related = _store().get(ticket["related_ticket"]) if ticket.get("related_ticket") else None
-    return render_template("result.html", d=describe(ticket, related))
+    return _render_result(_get_or_404(ticket_id))
+
+
+@bp.post("/result/<ticket_id>/answer")
+def answer(ticket_id):
+    """The renter supplies the one missing detail on the result page; triage runs again
+    on the same ticket, so there is still one ticket per request."""
+    ticket = _get_or_404(ticket_id)
+    if ticket["route"] != NEEDS_VERIFICATION:       # already answered; just show where it stands
+        return redirect(url_for("main.result", ticket_id=ticket_id), code=303)
+
+    target = ASK_FIELD[ticket["ask_for"]][2]
+    value, error = validate_answer(ticket["ask_for"], target, request.form.get("answer"))
+    if error:
+        return _render_result(ticket, answer_value=value, answer_error=error), 400
+
+    details = {**ticket, target: value}
+    lockout = LockoutRequest(
+        vehicle_id=details["vehicle_id"],
+        renter_name=details["renter_name"],
+        phone=details["phone"],
+        location=details["location"],
+        issue=details["issue"],
+        safe_place=details["safe_place"],
+    )
+    now = _now()
+    decision = _run_triage(lockout, now)
+    unlock_at = _send_unlock(decision, now)
+    fields = _ticket_fields(lockout, decision, now, unlock_at)
+    del fields["created_at"]                         # keep when the request was first made
+    _store().update(ticket_id, fields)
+    return redirect(url_for("main.result", ticket_id=ticket_id), code=303)
 
 
 @bp.get("/duplicate/<ticket_id>")
 def duplicate(ticket_id):
-    existing = _store().get(ticket_id)
-    if existing is None:
-        abort(404)
-    vehicle_id = existing["vehicle_id"]
+    existing = _get_or_404(ticket_id)
     shown = {
         "route": DUPLICATE,
         "reason_code": "DUPLICATE_TICKET",
-        "vehicle_id": vehicle_id,
+        "vehicle_id": existing["vehicle_id"],
         "related_ticket": ticket_id,
         "phone": "",
     }
-    return render_template("result.html", d=describe(shown, existing))
+    return render_template("result.html", d=describe(shown, existing),
+                           answer_value=None, answer_error=None)
 
 
 @bp.get("/tickets")
 def tickets():
     return render_template("tickets.html", tickets=list(reversed(_store().all())))
+
+
+def _get_or_404(ticket_id: str) -> dict:
+    ticket = _store().get(ticket_id)
+    if ticket is None:
+        abort(404)
+    return ticket
+
+
+def _render_result(ticket: dict, answer_value=None, answer_error=None):
+    related = _store().get(ticket["related_ticket"]) if ticket.get("related_ticket") else None
+    return render_template("result.html", d=describe(ticket, related),
+                           answer_value=answer_value, answer_error=answer_error)

@@ -71,6 +71,15 @@ class TicketStore:
             self._write(tickets)
             return ticket
 
+    def update(self, ticket_id: str, fields: dict) -> dict:
+        """Merge `fields` into an existing ticket and return it."""
+        with self._lock:
+            tickets = self.all()
+            ticket = next(t for t in tickets if t["id"] == ticket_id)
+            ticket.update(fields)
+            self._write(tickets)
+            return ticket
+
     def _write(self, tickets: list[dict]) -> None:
         directory = os.path.dirname(os.path.abspath(self.path))
         fd, tmp = tempfile.mkstemp(dir=directory, suffix=".tmp")

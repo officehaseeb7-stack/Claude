@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import os
-import re
 from datetime import datetime
 
 from flask import Flask
@@ -32,10 +31,6 @@ def create_app(config: dict | None = None) -> Flask:
     @app.template_filter("pretty_time")
     def pretty_time(iso):
         return datetime.fromisoformat(iso).strftime("%d %b %Y, %H:%M") if iso else ""
-
-    @app.template_filter("tel")
-    def tel(phone):
-        return re.sub(r"[^\d+]", "", phone or "")
 
     @app.context_processor
     def clock_info():

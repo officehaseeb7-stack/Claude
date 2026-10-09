@@ -23,18 +23,18 @@
 {% endmacro %}
 {% block content %}
 <div class="card">
-  <h1>Renter locked out of a vehicle</h1>
-  <p class="muted">Fill in all fields. We will check the rental and tell you what happens next.</p>
+  <h1>Locked out of your vehicle?</h1>
+  <p class="muted">Fill in every field. We'll check your rental and tell you what happens next.</p>
   {% if errors %}<p class="error" role="alert">Please fix the {{ errors|length }} highlighted field{{ '' if errors|length == 1 else 's' }} below.</p>{% endif %}
   <form method="post" action="{{ url_for('main.submit') }}" novalidate>
     {{ text_field("vehicle_id", "Vehicle ID", "For example V-1001.") }}
-    {{ text_field("renter_name", "Renter name", "As the renter gave it to you.") }}
-    {{ text_field("phone", "Renter phone number") }}
-    {{ area_field("location", "Where is the vehicle?", "Street, car park, landmarks, anything that helps.") }}
+    {{ text_field("renter_name", "Your name", "As it appears on your rental agreement.") }}
+    {{ text_field("phone", "Your phone number", "We'll use this to call you if needed.") }}
+    {{ area_field("location", "Where are you and the vehicle?", "Street, car park, landmarks, anything that helps.") }}
     {{ area_field("issue", "What happened?") }}
     <fieldset class="field{% if errors.get('safe_place') %} has-error{% endif %}"
               aria-describedby="{% if errors.get('safe_place') %}safe_place-error{% endif %}">
-      <legend>Is the renter in a safe place?</legend>
+      <legend>Are you in a safe place?</legend>
       <label class="radio"><input type="radio" name="safe_place" value="yes" {% if values.get('safe_place') == 'yes' %}checked{% endif %}> Yes</label>
       <label class="radio"><input type="radio" name="safe_place" value="no" {% if values.get('safe_place') == 'no' %}checked{% endif %}> No</label>
       {% if errors.get('safe_place') %}<p class="error" id="safe_place-error">{{ errors['safe_place'] }}</p>{% endif %}

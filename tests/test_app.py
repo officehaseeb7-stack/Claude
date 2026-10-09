@@ -29,6 +29,10 @@ def submit(client, **overrides):
     return client.post("/", data={**GOOD, **overrides})
 
 
+def text(response) -> str:
+    return htmllib.unescape(response.get_data(as_text=True))
+
+
 def follow(client, response):
     assert response.status_code == 303
     return client.get(response.headers["Location"])
@@ -42,10 +46,10 @@ def tickets_on_disk(path):
 
 @pytest.mark.parametrize("field,message", [
     ("vehicle_id", "Enter the vehicle ID."),
-    ("renter_name", "Enter the renter's name."),
-    ("phone", "Enter a phone number we can call."),
-    ("location", "Describe where the vehicle is."),
-    ("issue", "Describe what happened."),
+    ("renter_name", "Enter your name."),
+    ("phone", "Enter a phone number we can call you on."),
+    ("location", "Tell us where you are."),
+    ("issue", "Tell us what happened."),
     ("safe_place", "Choose Yes or No."),
 ])
 def test_each_missing_field_gets_its_own_error(tmp_path, field, message):
@@ -91,9 +95,9 @@ def test_user_text_is_escaped(client):
 def test_auto_resolve_logs_a_simulated_unlock(tmp_path):
     client, path = make_client(tmp_path)
     page = follow(client, submit(client))
-    html = page.get_data(as_text=True)
+    html = text(page)
     assert 'data-route="AUTO_RESOLVE"' in html
-    assert "Resolved" in html and "Within about 1 minute" in html
+    assert "Your vehicle is being unlocked" in html and "within about 1 minute" in html
     ticket = tickets_on_disk(path)[-1]
     assert ticket["route"] == "AUTO_RESOLVE" and ticket["status"] == "Resolved"
     assert ticket["unlock_sent"] and ticket["unlock_at"] == "2026-10-09T12:00:00"
@@ -107,16 +111,16 @@ def test_needs_verification_asks_for_exactly_one_item(client):
 
 
 def test_escalate_human_shows_checklist_and_timeline(client):
-    html = follow(client, submit(client, vehicle_id="V-1002", renter_name="Daniel Okafor")).get_data(as_text=True)
+    html = text(follow(client, submit(client, vehicle_id="V-1002", renter_name="Daniel Okafor")))
     assert 'data-route="ESCALATE_HUMAN"' in html
-    assert "offline" in html and "within 30 minutes" in html
+    assert "isn't connected" in html and "within 30 minutes" in html
     assert "While you wait" in html
 
 
-def test_urgent_safety_shows_call_now_with_phone(client):
-    html = follow(client, submit(client, safe_place="no")).get_data(as_text=True)
+def test_urgent_safety_tells_the_renter_we_will_call_them(client):
+    html = text(follow(client, submit(client, safe_place="no")))
     assert 'data-route="URGENT_SAFETY"' in html
-    assert "Call now" in html and 'href="tel:5550101"' in html
+    assert "We'll call you on 555-0101" in html and "emergency number" in html
 
 
 def test_duplicate_creates_no_ticket_and_links_the_existing_one(tmp_path):
@@ -124,8 +128,9 @@ def test_duplicate_creates_no_ticket_and_links_the_existing_one(tmp_path):
     before = len(tickets_on_disk(path))
     response = submit(client, vehicle_id="V-1004", renter_name="Marcus Lee")
     assert response.headers["Location"].endswith("/duplicate/T-0001")
-    html = client.get(response.headers["Location"]).get_data(as_text=True)
-    assert 'data-route="DUPLICATE"' in html and "T-0001" in html and "No new ticket" in html
+    html = text(client.get(response.headers["Location"]))
+    assert 'data-route="DUPLICATE"' in html and "T-0001" in html
+    assert "We haven't opened a new ticket" in html
     assert len(tickets_on_disk(path)) == before
 
 
@@ -138,10 +143,10 @@ def test_unknown_result_page_is_404(client):
 
 def test_unsafe_and_offline_vehicle_is_urgent(tmp_path):
     client, path = make_client(tmp_path)
-    html = follow(client, submit(client, vehicle_id="V-1006", renter_name="Hannah Weber",
-                                 safe_place="no")).get_data(as_text=True)
+    html = text(follow(client, submit(client, vehicle_id="V-1006", renter_name="Hannah Weber",
+                                      safe_place="no")))
     assert 'data-route="URGENT_SAFETY"' in html
-    assert "cannot be unlocked remotely" in html
+    assert "we can't unlock it remotely" in html
     assert tickets_on_disk(path)[-1]["unlock_sent"] is False
 
 
@@ -236,30 +241,30 @@ def test_seed_file_is_untouched_by_runtime_writes(tmp_path):
 # (name, clock, form values, expected route, text that must appear on the result page)
 
 SCENARIOS = [
-    ("1 happy path", "", dict(), "AUTO_RESOLVE", "Resolved"),
-    ("2 night, otherwise clean", NIGHT_CLOCK, dict(), "URGENT_SAFETY", "already unlocked"),
+    ("1 happy path", "", dict(), "AUTO_RESOLVE", "We sent the unlock"),
+    ("2 night, otherwise clean", NIGHT_CLOCK, dict(), "URGENT_SAFETY", "already unlocked your vehicle"),
     ("3 vehicle offline", "", dict(vehicle_id="V-1002", renter_name="Daniel Okafor"),
-     "ESCALATE_HUMAN", "offline"),
+     "ESCALATE_HUMAN", "isn't connected"),
     ("4 repeat lockout", "", dict(vehicle_id="V-1003", renter_name="Priya Nair"),
      "ESCALATE_HUMAN", "already been locked out"),
     ("5 name mismatch", "", dict(vehicle_id="V-1005", renter_name="Jordan Smith"),
-     "ESCALATE_HUMAN", "does not match"),
+     "ESCALATE_HUMAN", "doesn't match"),
     ("6 partial name", "", dict(vehicle_id="V-1005", renter_name="Sofia"),
-     "NEEDS_VERIFICATION", "exactly as it appears"),
-    ("7 unknown vehicle", "", dict(vehicle_id="V-9999"), "NEEDS_VERIFICATION", "correct vehicle ID"),
+     "NEEDS_VERIFICATION", "Exactly as it appears"),
+    ("7 unknown vehicle", "", dict(vehicle_id="V-9999"), "NEEDS_VERIFICATION", "Enter the correct vehicle ID"),
     ("8 no active rental", "", dict(vehicle_id="V-1008", renter_name="Liam Walsh"),
-     "ESCALATE_HUMAN", "no active rental"),
+     "ESCALATE_HUMAN", "an active rental"),
     ("9 duplicate", "", dict(vehicle_id="V-1004", renter_name="Marcus Lee"), "DUPLICATE", "T-0001"),
     ("10 renter not safe", "", dict(vehicle_id="V-1005", renter_name="Sofia Rossi", safe_place="no"),
      "URGENT_SAFETY", "not in a safe place"),
     ("11 child inside", "", dict(issue="My baby is asleep in the back seat."),
      "URGENT_SAFETY", "child or pet"),
     ("12 unsafe + offline", "", dict(vehicle_id="V-1006", renter_name="Hannah Weber", safe_place="no"),
-     "URGENT_SAFETY", "cannot be unlocked remotely"),
+     "URGENT_SAFETY", "we can't unlock it remotely"),
     ("13 unsafe + duplicate", "", dict(vehicle_id="V-1007", renter_name="Tomás García", safe_place="no"),
      "URGENT_SAFETY", "T-0002"),
     ("14 unsafe + unknown vehicle", "", dict(vehicle_id="V-9999", safe_place="no"),
-     "URGENT_SAFETY", "V-9999 is not in the fleet"),
+     "URGENT_SAFETY", "vehicle V-9999 isn't in the fleet"),
 ]
 
 
@@ -267,6 +272,97 @@ SCENARIOS = [
 def test_readme_demo_scenarios(tmp_path, name, clock, values, route, expected_text):
     client, _ = make_client(tmp_path, now=clock)
     response = submit(client, **values)
-    html = client.get(response.headers["Location"]).get_data(as_text=True)
+    html = text(client.get(response.headers["Location"]))
     assert f'data-route="{route}"' in html
     assert expected_text in html
+    # The result screen speaks to the renter: never "the renter" or "renter's".
+    assert "renter" not in html.lower()
+
+
+# ---- answering the one missing detail on the result page ---------------------
+
+def answer(client, ticket_id, value):
+    return client.post(f"/result/{ticket_id}/answer", data={"answer": value})
+
+
+def test_needs_verification_page_has_one_inline_field(client):
+    html = text(follow(client, submit(client, vehicle_id="V-9999")))
+    assert html.count('name="answer"') == 1
+    assert 'action="/result/T-0003/answer"' in html
+    assert 'value="V-9999"' in html                                  # what they typed is pre-filled
+    assert "You don't need to fill in the form again." in html
+
+
+def test_answering_a_wrong_vehicle_id_updates_the_same_ticket(tmp_path):
+    client, path = make_client(tmp_path)
+    follow(client, submit(client, vehicle_id="V-9999"))
+    response = answer(client, "T-0003", "v-1001")
+    assert response.status_code == 303 and response.headers["Location"].endswith("/result/T-0003")
+    assert 'data-route="AUTO_RESOLVE"' in text(client.get(response.headers["Location"]))
+    tickets = tickets_on_disk(path)
+    assert len(tickets) == 3                                          # still one ticket for this request
+    assert tickets[-1]["status"] == "Resolved" and tickets[-1]["vehicle_id"] == "V-1001"
+    assert tickets[-1]["unlock_sent"] and tickets[-1]["created_at"] == "2026-10-09T12:00:00"
+
+
+def test_answering_with_the_full_name_resolves_the_request(tmp_path):
+    client, path = make_client(tmp_path)
+    follow(client, submit(client, vehicle_id="V-1005", renter_name="Sofia"))
+    assert 'value="Sofia"' in text(client.get("/result/T-0003"))
+    answer(client, "T-0003", "Sofia Rossi")
+    assert tickets_on_disk(path)[-1]["route"] == "AUTO_RESOLVE"
+    assert tickets_on_disk(path)[-1]["renter_name"] == "Sofia Rossi"
+
+
+def test_empty_answer_shows_an_error_beside_the_field_and_changes_nothing(tmp_path):
+    client, path = make_client(tmp_path)
+    follow(client, submit(client, vehicle_id="V-9999"))
+    before = tickets_on_disk(path)
+    response = answer(client, "T-0003", "   ")
+    html = text(response)
+    assert response.status_code == 400
+    assert 'id="answer-error"' in html and "Enter the vehicle ID." in html
+    assert tickets_on_disk(path) == before
+
+
+def test_a_second_wrong_answer_asks_again(tmp_path):
+    client, path = make_client(tmp_path)
+    follow(client, submit(client, vehicle_id="V-9999"))
+    page = text(follow(client, answer(client, "T-0003", "V-8888")))
+    assert 'data-route="NEEDS_VERIFICATION"' in page and "vehicle V-8888" in page
+    assert len(tickets_on_disk(path)) == 3
+
+
+def test_answer_that_matches_an_open_ticket_closes_this_one_as_a_duplicate(tmp_path):
+    client, path = make_client(tmp_path)
+    follow(client, submit(client, vehicle_id="V-9999", renter_name="Marcus Lee"))
+    page = text(follow(client, answer(client, "T-0003", "V-1004")))
+    assert 'data-route="DUPLICATE"' in page and "T-0001" in page
+    ticket = tickets_on_disk(path)[-1]
+    assert ticket["status"] == "Closed" and ticket["related_ticket"] == "T-0001"
+    assert len(tickets_on_disk(path)) == 3                            # no new ticket was added
+
+
+def test_answering_a_ticket_that_is_no_longer_waiting_just_shows_it(tmp_path):
+    client, path = make_client(tmp_path)
+    follow(client, submit(client))                                    # T-0003, resolved
+    before = tickets_on_disk(path)
+    response = answer(client, "T-0003", "V-1002")
+    assert response.status_code == 303 and tickets_on_disk(path) == before
+
+
+def test_answer_for_unknown_ticket_is_404(client):
+    assert answer(client, "T-9999", "V-1001").status_code == 404
+
+
+def test_answer_cannot_change_the_phone_or_other_details(tmp_path):
+    client, path = make_client(tmp_path)
+    follow(client, submit(client, vehicle_id="V-9999", phone="555-0199"))
+    answer(client, "T-0003", "V-1001")
+    assert tickets_on_disk(path)[-1]["phone"] == "555-0199"
+
+
+def test_ticket_log_stays_in_staff_voice(client):
+    follow(client, submit(client, safe_place="no"))
+    html = text(client.get("/tickets"))
+    assert "The renter may be in an unsafe situation" in html and "CALL NOW" in html

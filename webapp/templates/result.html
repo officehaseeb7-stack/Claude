@@ -3,9 +3,7 @@
 {% block content %}
 <div class="banner tone-{{ d.tone }}" data-route="{{ d.route }}" role="status">
   <h1>{{ d.status_label }}</h1>
-  {% if d.call_now and d.phone %}
-    <p class="callnow">Call now: <a href="tel:{{ d.phone|tel }}">{{ d.phone }}</a></p>
-  {% endif %}
+  {% if d.banner_note %}<p class="callnow">{{ d.banner_note }}</p>{% endif %}
 </div>
 
 <div class="card">
@@ -16,12 +14,23 @@
   <h2>Why</h2>
   <p>{{ d.reason }}</p>
   {% if d.also_noted %}
-    <p>Also noted:</p>
+    <p>We also noticed:</p>
     <ul>{% for item in d.also_noted %}<li>{{ item }}</li>{% endfor %}</ul>
   {% endif %}
 
-  {% if d.ask %}
-    <div class="ask">What we need from you: {{ d.ask }}.</div>
+  {% if d.ask_label %}
+    <form class="ask{% if answer_error %} has-error{% endif %}" method="post"
+          action="{{ url_for('main.answer', ticket_id=d.ticket_id) }}" novalidate>
+      <label for="answer">{{ d.ask_label }}</label>
+      <p class="hint" id="answer-hint">{{ d.ask_hint }}</p>
+      <div class="row">
+        <input type="text" id="answer" name="answer" value="{{ answer_value if answer_value is not none else d.ask_value }}"
+               aria-describedby="answer-hint{% if answer_error %} answer-error{% endif %}"
+               {% if answer_error %}aria-invalid="true"{% endif %} autocomplete="off">
+        <button type="submit">Send</button>
+      </div>
+      {% if answer_error %}<p class="error" id="answer-error">{{ answer_error }}</p>{% endif %}
+    </form>
   {% endif %}
 
   <h2>What happens next</h2>
@@ -45,8 +54,7 @@
 </div>
 
 <p>
-  {% if d.ask %}<a class="button" href="{{ url_for('main.form') }}">Submit again</a>{% else %}
-  <a class="button" href="{{ url_for('main.form') }}">New request</a>{% endif %}
+  <a class="button" href="{{ url_for('main.form') }}">New request</a>
   &nbsp; <a href="{{ url_for('main.tickets') }}">View ticket log</a>
 </p>
 {% endblock %}

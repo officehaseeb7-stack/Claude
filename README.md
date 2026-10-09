@@ -54,7 +54,9 @@ below share vehicles, so **delete the file between scenarios** (or run them in s
 1. **Intake form**: vehicle ID, renter name, phone, location, issue, "renter in a safe place" yes/no.
    Every field is required; each error appears next to its field.
 2. **Triage** (`triage/`): plain rules in pure functions with no Flask imports.
-3. **Result screen**: plain-language status, reason, what happens next and expected timeline.
+3. **Result screen**: written to the renter ("you", "your vehicle"): plain-language status, reason,
+   what happens next and expected timeline. If one detail is missing, a single field for it sits
+   on the same page (see below).
 4. **Ticket log** (`/tickets`): every ticket with status and decision reason, newest first.
 
 ### Decision order
@@ -72,6 +74,17 @@ The first rule that matches decides. All other findings are still recorded and s
 | 6 | Vehicle offline (telematics) | **ESCALATE_HUMAN** | A remote unlock is impossible. |
 | 7 | Repeat lockout (2 or more in this rental, counting this one) | **ESCALATE_HUMAN** | A person should look before unlocking again. |
 | 8 | None of the above | **AUTO_RESOLVE**: simulated unlock, logged | Everything checks out. |
+
+**When one detail is missing.** NEEDS_VERIFICATION results show one input box right on the result
+page, labelled for exactly what is missing (the vehicle ID, or the full name). Pressing **Send**
+runs triage again on the *same ticket* with the new value, so there is still one ticket per
+request and the renter never retypes the form. If the answer is still not good enough, the page
+asks again. If it turns out an open ticket already exists, the waiting ticket is closed as a
+duplicate and no extra ticket is created.
+
+**Two voices.** The result screen speaks to the renter. The ticket log is the staff view, so it
+keeps third person ("The renter may be in an unsafe situation..."), the CALL NOW flag, and the
+"Unlock sent" note.
 
 **Unsafe signals** (any one is enough): the form says the renter is *not* in a safe place; the
 location or issue text mentions a child or pet, extreme weather, or a remote area; or it is night.
@@ -107,8 +120,8 @@ Default clock (12:00) unless stated. Fields not listed use: renter name as in th
 | 3 | V-1002 | Daniel Okafor | | **ESCALATE_HUMAN**: vehicle offline |
 | 4 | V-1003 | Priya Nair | | **ESCALATE_HUMAN**: repeat lockout (one earlier on this rental) |
 | 5 | V-1005 | Jordan Smith | | **ESCALATE_HUMAN**: name does not match |
-| 6 | V-1005 | Sofia | | **NEEDS_VERIFICATION**: asks only for the full name. Resubmit as `Sofia Rossi` to get AUTO_RESOLVE. |
-| 7 | V-9999 | Amira Khan | | **NEEDS_VERIFICATION**: asks only for the correct vehicle ID |
+| 6 | V-1005 | Sofia | | **NEEDS_VERIFICATION**: one box asking only for the full name. Type `Sofia Rossi` in it and press Send: the same ticket becomes AUTO_RESOLVE. |
+| 7 | V-9999 | Amira Khan | | **NEEDS_VERIFICATION**: one box asking only for the vehicle ID. Type `V-1001` and press Send: the same ticket becomes AUTO_RESOLVE. |
 | 8 | V-1008 | Liam Walsh | | **ESCALATE_HUMAN**: no active rental |
 | 9 | V-1004 | Marcus Lee | | **DUPLICATE**: points to T-0001, no new ticket |
 | 10 | V-1005 | Sofia Rossi | Safe place: **No** | **URGENT_SAFETY** |
@@ -128,8 +141,8 @@ Also worth trying: night plus an offline vehicle (V-1002 with the night clock) i
 - **Repeat count**: the rental's `prior_lockouts` plus earlier tickets for that rental whose renter
   name matched exactly. Requests that were only asking for a missing detail, or that failed the name
   check, do not count.
-- **Open ticket** means any status other than Resolved or Awaiting info. A request waiting for one
-  detail does not block the corrected resubmission from going through.
+- **Open ticket** means any status other than Resolved, Awaiting info or Closed. A request waiting
+  for one detail therefore never blocks its own answer or a fresh resubmission.
 - **Time zones**: one clock for everything; there are no per-vehicle time zones.
 - **Placeholder timelines** (not real service levels):
 
@@ -141,8 +154,14 @@ Also worth trying: night plus an offline vehicle (V-1002 with the night clock) i
   | URGENT_SAFETY | Call now; target a person on the phone within 5 minutes |
   | DUPLICATE | No new clock; follows the existing ticket |
 
-- No sign-in, no notifications, no reply step: the operator answers a request for more detail by
-  submitting the form again.
+- No sign-in and no notifications. The answer box on the result page is the only reply step.
+
+## Look and feel
+
+Colours and fonts are set in one place: the `THEME` block at the top of
+`webapp/templates/base.html`. They are currently **neutral placeholders, not 1Now's brand**.
+The site could not be reached from the build environment, so the exact palette and typefaces
+have not been applied. To rebrand, change the variables in that block and add the font link.
 
 ## Project layout
 

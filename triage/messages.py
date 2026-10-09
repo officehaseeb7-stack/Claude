@@ -1,5 +1,9 @@
 """Plain-language wording for each outcome. Pure functions: ticket dict in, display dict out.
 
+Two voices:
+  describe()      - what the RENTER sees on the result screen, written to "you".
+  staff_reason()  - the one-line decision reason kept in the ticket log, for staff.
+
 All timeline values and the self-help checklist are prototype placeholders, not real
 service levels or procedures.
 """
@@ -27,33 +31,46 @@ from .engine import (
 )
 
 TIMELINES = {
-    AUTO_RESOLVE: "Within about 1 minute.",
-    NEEDS_VERIFICATION: "We pick this up as soon as you send that one detail.",
+    AUTO_RESOLVE: "Your vehicle should unlock within about 1 minute.",
+    NEEDS_VERIFICATION: "We carry on as soon as you send that detail.",
     ESCALATE_HUMAN: "A support team member will contact you within 30 minutes.",
-    URGENT_SAFETY: "Call the renter now. Target: a person on the phone within 5 minutes.",
+    URGENT_SAFETY: "We aim to have someone on the phone with you within 5 minutes.",
 }
 
+# (headline shown to the renter, colour tone)
 STATUS = {
-    AUTO_RESOLVE: ("Resolved", "good"),
-    NEEDS_VERIFICATION: ("One detail needed from you", "info"),
-    ESCALATE_HUMAN: ("Passed to a person", "warn"),
-    URGENT_SAFETY: ("URGENT: call the renter now", "urgent"),
-    DUPLICATE: ("Already being handled", "info"),
+    AUTO_RESOLVE: ("Your vehicle is being unlocked", "good"),
+    NEEDS_VERIFICATION: ("We need one more detail from you", "info"),
+    ESCALATE_HUMAN: ("We're passing you to a person", "warn"),
+    URGENT_SAFETY: ("Urgent: we're prioritising your request", "urgent"),
+    DUPLICATE: ("We already have your request", "info"),
 }
 
+# Status words kept in the ticket log (staff view).
 TICKET_STATUS = {
     AUTO_RESOLVE: "Resolved",
     NEEDS_VERIFICATION: "Awaiting info",
     ESCALATE_HUMAN: "Escalated",
     URGENT_SAFETY: "Urgent",
+    DUPLICATE: "Closed",  # only used when an awaiting ticket turns out to be a duplicate
 }
 
-ASK_TEXT = {
-    ASK_VEHICLE_ID: "the correct vehicle ID",
-    ASK_FULL_NAME: "the renter's full name, exactly as it appears on the rental agreement",
+# What the single inline field asks for: (label, hint, ticket field it fills in)
+ASK_FIELD = {
+    ASK_VEHICLE_ID: ("Vehicle ID", "Enter the correct vehicle ID.", "vehicle_id"),
+    ASK_FULL_NAME: ("Your full name",
+                    "Exactly as it appears on your rental agreement.", "renter_name"),
 }
 
 SIGNAL_TEXT = {
+    safety.NOT_SAFE_PLACE: "you said you are not in a safe place",
+    safety.CHILD_OR_PET: "a child or pet may be inside the vehicle",
+    safety.EXTREME_WEATHER: "you mentioned extreme weather",
+    safety.REMOTE_AREA: "you seem to be in a remote area",
+    safety.NIGHT: "it is night time",
+}
+
+STAFF_SIGNAL_TEXT = {
     safety.NOT_SAFE_PLACE: "the renter said they are not in a safe place",
     safety.CHILD_OR_PET: "a child or pet may be inside the vehicle",
     safety.EXTREME_WEATHER: "extreme weather is mentioned",
@@ -62,20 +79,20 @@ SIGNAL_TEXT = {
 }
 
 FINDING_TEXT = {
-    VEHICLE_NOT_FOUND: "vehicle {vehicle_id} is not in the fleet",
+    VEHICLE_NOT_FOUND: "vehicle {vehicle_id} isn't in the fleet",
     NO_ACTIVE_RENTAL: "the vehicle has no active rental",
-    NAME_MISMATCH: "the name given does not match the rental agreement",
-    NAME_PARTIAL: "the name given only partly matches the rental agreement",
+    NAME_MISMATCH: "the name you gave doesn't match the rental agreement",
+    NAME_PARTIAL: "the name you gave only partly matches the rental agreement",
     DUPLICATE_TICKET: "there is already an open ticket for this vehicle",
-    VEHICLE_OFFLINE: "the vehicle is offline, so it cannot be unlocked remotely",
-    REPEAT_LOCKOUT: "this renter has already been locked out during this rental",
+    VEHICLE_OFFLINE: "your vehicle is offline, so we can't unlock it remotely",
+    REPEAT_LOCKOUT: "you've already been locked out during this rental",
 }
 
 CHECKLIST = (
-    "Ask the renter to check every door and the boot or trunk, not just the one they tried.",
-    "If they have a spare key or phone access, ask them to try it.",
-    "Keep them in a well-lit spot with other people around while they wait.",
-    "Do not ask them to force a door or break a window.",
+    "Check every door and the boot or trunk, not just the one you tried.",
+    "If you have a spare key or phone access, try it.",
+    "Wait somewhere well lit with other people around.",
+    "Please don't force a door or break a window.",
 )
 
 
@@ -91,102 +108,136 @@ def _clock(iso: str | None) -> str:
     return "at " + datetime.fromisoformat(iso).strftime("%H:%M")
 
 
-def _reason(t: dict) -> str:
+def staff_reason(t: dict) -> str:
+    """One-line decision reason for the ticket log (third person, for staff)."""
     code = t["reason_code"]
     vehicle_id = t.get("vehicle_id", "")
     if code == UNSAFE_SITUATION:
-        why = _join([SIGNAL_TEXT[s] for s in t.get("signals", [])])
+        why = _join([STAFF_SIGNAL_TEXT[s] for s in t.get("signals", [])])
         text = f"The renter may be in an unsafe situation: {why}."
         if t.get("unlock_sent"):
             text += " Everything else checks out: the name matches and the vehicle is online."
         return text
     if code == VEHICLE_NOT_FOUND:
-        return f"We could not find vehicle {vehicle_id} in your fleet."
+        return f"Vehicle {vehicle_id} is not in the fleet."
     if code == NO_ACTIVE_RENTAL:
-        return (f"Vehicle {vehicle_id} has no active rental right now, "
-                "so we cannot confirm this person is allowed to be in it.")
+        return f"Vehicle {vehicle_id} has no active rental, so the renter cannot be verified."
     if code == NAME_MISMATCH:
-        return "The name you gave does not match the name on the rental agreement."
+        return "The name given does not match the name on the rental agreement."
+    if code == NAME_PARTIAL:
+        return "The name given matches only part of the name on the rental agreement."
+    if code == DUPLICATE_TICKET:
+        link = f" ({t['related_ticket']})" if t.get("related_ticket") else ""
+        return f"There is already an open ticket for vehicle {vehicle_id}{link}, so no new one was created."
+    if code == VEHICLE_OFFLINE:
+        return "The vehicle is offline, so it cannot be unlocked remotely."
+    if code == REPEAT_LOCKOUT:
+        return ("The renter has already been locked out during this rental, "
+                "so a person must review before unlocking again.")
+    return ("Everything checks out: active rental, name matches, vehicle online, "
+            "first lockout.")
+
+
+def _reason_for_renter(t: dict) -> str:
+    code = t["reason_code"]
+    vehicle_id = t.get("vehicle_id", "")
+    if code == UNSAFE_SITUATION:
+        why = _join([SIGNAL_TEXT[s] for s in t.get("signals", [])])
+        text = f"You may be in an unsafe situation: {why}."
+        if t.get("unlock_sent"):
+            text += " Everything else checks out: your name matches and your vehicle is online."
+        return text
+    if code == VEHICLE_NOT_FOUND:
+        return f"We couldn't find vehicle {vehicle_id} in the fleet."
+    if code == NO_ACTIVE_RENTAL:
+        return (f"We couldn't find an active rental for vehicle {vehicle_id}, "
+                "so we can't confirm you're allowed to be in it.")
+    if code == NAME_MISMATCH:
+        return "The name you gave doesn't match the name on the rental agreement."
     if code == NAME_PARTIAL:
         return "The name you gave matches only part of the name on the rental agreement."
     if code == DUPLICATE_TICKET:
-        return f"There is already an open ticket for vehicle {vehicle_id}, so no new one was created."
+        return (f"We already have an open ticket for vehicle {vehicle_id}, "
+                "so we haven't opened a new one.")
     if code == VEHICLE_OFFLINE:
-        return "The vehicle is offline right now, so we cannot unlock it remotely."
+        return "Your vehicle isn't connected right now, so we can't unlock it remotely."
     if code == REPEAT_LOCKOUT:
-        return ("This renter has already been locked out during this rental, "
-                "so a person needs to look at it before anyone unlocks the car again.")
-    return ("Everything checks out: the vehicle has an active rental, the name matches, "
-            "the vehicle is online and this is the first lockout.")
+        return ("You've already been locked out once during this rental, so a person needs "
+                "to check before your vehicle is unlocked again.")
+    return ("Everything checks out: your rental is active, your name matches, "
+            "and your vehicle is online.")
 
 
 def describe(t: dict, related: dict | None = None) -> dict:
-    """Build everything the result screen shows. `related` is the linked ticket, if any."""
+    """Build everything the result screen shows, written to the renter. `related` is the linked ticket."""
     route = t["route"]
     label, tone = STATUS[route]
     phone = t.get("phone", "")
-    ticket_id = t.get("id")
     also = [FINDING_TEXT[f].format(vehicle_id=t.get("vehicle_id", "")) for f in t.get("flags", [])
             if f != DUPLICATE_TICKET]
 
     steps: list[str] = []
     checklist: tuple = ()
     timeline = TIMELINES.get(route, "")
-    ask = None
+    ask_label = ask_hint = ask_value = None
+    banner_note = ""
 
     if route == AUTO_RESOLVE:
         steps = [
-            f"The unlock was sent to the vehicle {_clock(t.get('unlock_at'))}.",
-            "Ask the renter to try the door now.",
-            "If it still will not open, contact support and quote the ticket number.",
+            f"We sent the unlock to your vehicle {_clock(t.get('unlock_at'))}.",
+            "Try the door now.",
+            "If it still won't open, contact support and quote your ticket number.",
         ]
     elif route == NEEDS_VERIFICATION:
-        ask = ASK_TEXT[t["ask_for"]]
+        ask_label, ask_hint, source = ASK_FIELD[t["ask_for"]]
+        ask_value = t.get(source, "")
         steps = [
-            f"Submit the form again with {ask}.",
-            "Nothing else is needed from you.",
+            "Enter it in the box on this page and press Send.",
+            "You don't need to fill in the form again.",
         ]
     elif route == ESCALATE_HUMAN:
         steps = [
-            "A support team member will review this and contact you.",
-            f"Please keep the renter's phone ({phone}) reachable.",
+            f"A support team member will review your request and contact you on {phone}.",
+            "Please keep your phone with you.",
         ]
         checklist = CHECKLIST
     elif route == URGENT_SAFETY:
+        banner_note = f"Keep your phone with you. We'll call you on {phone}."
         steps = [
-            f"Call the renter now on {phone}.",
-            "Support has been alerted and the ticket is marked call now.",
+            f"We'll call you on {phone}. Please answer.",
+            "Our team has been alerted and your request is marked urgent.",
         ]
         if t.get("unlock_sent"):
-            steps.append(f"The car was already unlocked {_clock(t.get('unlock_at'))}. "
-                         "Still call to check the renter is okay.")
+            steps.append(f"We've already unlocked your vehicle {_clock(t.get('unlock_at'))}. "
+                         "We'll still call to check you're okay.")
         if t.get("related_ticket"):
-            steps.append(f"This is linked to the open ticket {t['related_ticket']} for the same vehicle.")
-        steps.append("If anyone is in danger, tell them to call local emergency services.")
+            steps.append(f"We've linked this to your earlier open ticket {t['related_ticket']}.")
+        steps.append("If you are in danger, call your local emergency number now.")
         checklist = CHECKLIST
     elif route == DUPLICATE:
         rid = t["related_ticket"]
         status = related["status"] if related else "open"
         timeline = f"No new clock starts. This follows ticket {rid} (status: {status})."
         steps = [
-            "No new ticket was created.",
-            f"Follow ticket {rid} in the ticket log.",
-            "If the renter is no longer safe, submit the form again and answer No to "
-            "\"Is the renter in a safe place?\".",
+            "We haven't opened a new ticket.",
+            f"You can follow your existing ticket, {rid}, in the ticket log.",
+            "If things have changed and you no longer feel safe, send a new request and "
+            "answer No to \"Are you in a safe place?\".",
         ]
 
     return {
         "route": route,
         "tone": tone,
         "status_label": label,
-        "reason": _reason(t),
+        "banner_note": banner_note,
+        "reason": _reason_for_renter(t),
         "next_steps": steps,
         "timeline": timeline,
-        "ask": ask,
+        "ask_label": ask_label,
+        "ask_hint": ask_hint,
+        "ask_value": ask_value,
         "checklist": list(checklist),
         "also_noted": also,
-        "call_now": bool(t.get("call_now")),
-        "phone": phone,
-        "ticket_id": ticket_id,
+        "ticket_id": t.get("id"),
         "related_ticket": t.get("related_ticket"),
     }
