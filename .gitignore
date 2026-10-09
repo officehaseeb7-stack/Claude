@@ -1,0 +1,6 @@
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+# Runtime ticket log; recreated from data/tickets.seed.json on first request
+data/tickets.json

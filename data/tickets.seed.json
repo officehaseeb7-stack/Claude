@@ -1,0 +1,20 @@
+[
+  {
+    "id": "T-0001", "created_at": "2026-10-09T09:40:00", "vehicle_id": "V-1004", "rental_id": "R-5004",
+    "renter_name": "Marcus Lee", "phone": "555-0104", "location": "Supermarket car park, bay 14",
+    "issue": "Keys locked inside the car.", "safe_place": true,
+    "route": "ESCALATE_HUMAN", "status": "Escalated", "reason_code": "VEHICLE_OFFLINE",
+    "reason": "The vehicle is offline right now, so we cannot unlock it remotely.",
+    "signals": [], "flags": [], "related_ticket": null, "ask_for": null, "call_now": false,
+    "unlock_sent": false, "unlock_at": null, "counts_as_lockout": true
+  },
+  {
+    "id": "T-0002", "created_at": "2026-10-09T10:05:00", "vehicle_id": "V-1007", "rental_id": "R-5007",
+    "renter_name": "Tomás García", "phone": "555-0107", "location": "Outside the train station",
+    "issue": "Door will not open after a short stop.", "safe_place": true,
+    "route": "ESCALATE_HUMAN", "status": "Escalated", "reason_code": "REPEAT_LOCKOUT",
+    "reason": "This renter has already been locked out during this rental, so a person needs to look at it before anyone unlocks the car again.",
+    "signals": [], "flags": [], "related_ticket": null, "ask_for": null, "call_now": false,
+    "unlock_sent": false, "unlock_at": null, "counts_as_lockout": true
+  }
+]

@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}{{ d.status_label }}{% endblock %}
+{% block content %}
+<div class="banner tone-{{ d.tone }}" data-route="{{ d.route }}" role="status">
+  <h1>{{ d.status_label }}</h1>
+  {% if d.call_now and d.phone %}
+    <p class="callnow">Call now: <a href="tel:{{ d.phone|tel }}">{{ d.phone }}</a></p>
+  {% endif %}
+</div>
+
+<div class="card">
+  {% if d.ticket_id and d.route != 'DUPLICATE' %}
+    <p class="muted">Ticket <a href="{{ url_for('main.tickets') }}#{{ d.ticket_id }}">{{ d.ticket_id }}</a></p>
+  {% endif %}
+
+  <h2>Why</h2>
+  <p>{{ d.reason }}</p>
+  {% if d.also_noted %}
+    <p>Also noted:</p>
+    <ul>{% for item in d.also_noted %}<li>{{ item }}</li>{% endfor %}</ul>
+  {% endif %}
+
+  {% if d.ask %}
+    <div class="ask">What we need from you: {{ d.ask }}.</div>
+  {% endif %}
+
+  <h2>What happens next</h2>
+  <ul>
+    {% for step in d.next_steps %}
+      <li>{{ step }}
+        {% if d.route == 'DUPLICATE' and d.related_ticket and d.related_ticket in step %}
+          (<a href="{{ url_for('main.tickets') }}#{{ d.related_ticket }}">open it</a>)
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+
+  <h2>Expected timeline</h2>
+  <p>{{ d.timeline }}</p>
+
+  {% if d.checklist %}
+    <h2>While you wait, you can try</h2>
+    <ul>{% for item in d.checklist %}<li>{{ item }}</li>{% endfor %}</ul>
+  {% endif %}
+</div>
+
+<p>
+  {% if d.ask %}<a class="button" href="{{ url_for('main.form') }}">Submit again</a>{% else %}
+  <a class="button" href="{{ url_for('main.form') }}">New request</a>{% endif %}
+  &nbsp; <a href="{{ url_for('main.tickets') }}">View ticket log</a>
+</p>
+{% endblock %}

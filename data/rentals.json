@@ -1,0 +1,10 @@
+[
+  {"id": "R-5001", "vehicle_id": "V-1001", "renter_name": "Amira Khan",    "active": true,  "prior_lockouts": 0},
+  {"id": "R-5002", "vehicle_id": "V-1002", "renter_name": "Daniel Okafor", "active": true,  "prior_lockouts": 0},
+  {"id": "R-5003", "vehicle_id": "V-1003", "renter_name": "Priya Nair",    "active": true,  "prior_lockouts": 1},
+  {"id": "R-5004", "vehicle_id": "V-1004", "renter_name": "Marcus Lee",    "active": true,  "prior_lockouts": 0},
+  {"id": "R-5005", "vehicle_id": "V-1005", "renter_name": "Sofia Rossi",   "active": true,  "prior_lockouts": 0},
+  {"id": "R-5006", "vehicle_id": "V-1006", "renter_name": "Hannah Weber",  "active": true,  "prior_lockouts": 0},
+  {"id": "R-5007", "vehicle_id": "V-1007", "renter_name": "Tomás García",  "active": true,  "prior_lockouts": 1},
+  {"id": "R-5008", "vehicle_id": "V-1008", "renter_name": "Liam Walsh",    "active": false, "prior_lockouts": 0}
+]

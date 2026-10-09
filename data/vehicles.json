@@ -1,0 +1,10 @@
+[
+  {"id": "V-1001", "make_model": "Toyota Corolla",   "telematics_online": true},
+  {"id": "V-1002", "make_model": "Honda Civic",      "telematics_online": false},
+  {"id": "V-1003", "make_model": "Ford Focus",       "telematics_online": true},
+  {"id": "V-1004", "make_model": "Hyundai Elantra",  "telematics_online": true},
+  {"id": "V-1005", "make_model": "Kia Sportage",     "telematics_online": true},
+  {"id": "V-1006", "make_model": "Tesla Model 3",    "telematics_online": false},
+  {"id": "V-1007", "make_model": "Nissan Rogue",     "telematics_online": true},
+  {"id": "V-1008", "make_model": "Mazda 3",          "telematics_online": true}
+]

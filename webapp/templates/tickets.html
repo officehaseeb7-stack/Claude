@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Ticket log{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>Ticket log</h1>
+  <p class="muted">Newest first. Requests that match an open ticket do not create a new one.</p>
+  {% if tickets %}
+  <div class="scroll">
+    <table>
+      <thead>
+        <tr><th>Ticket</th><th>Time</th><th>Vehicle</th><th>Renter</th><th>Status</th><th>Decision reason</th></tr>
+      </thead>
+      <tbody>
+      {% for t in tickets %}
+        <tr id="{{ t.id }}" data-route="{{ t.route }}">
+          <td><strong>{{ t.id }}</strong></td>
+          <td>{{ t.created_at|pretty_time }}</td>
+          <td>{{ t.vehicle_id }}</td>
+          <td>{{ t.renter_name }}</td>
+          <td>
+            {{ t.status }}
+            {% if t.call_now %}<br><strong>CALL NOW</strong>{% endif %}
+            {% if t.unlock_sent %}<br><span class="muted">Unlock sent</span>{% endif %}
+          </td>
+          <td>
+            {{ t.reason }}
+            {% if t.related_ticket %}<br><span class="muted">Linked to <a href="#{{ t.related_ticket }}">{{ t.related_ticket }}</a></span>{% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    <p>No tickets yet.</p>
+  {% endif %}
+</div>
+{% endblock %}
