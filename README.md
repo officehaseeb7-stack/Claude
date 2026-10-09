@@ -158,10 +158,32 @@ Also worth trying: night plus an offline vehicle (V-1002 with the night clock) i
 
 ## Look and feel
 
-Colours and fonts are set in one place: the `THEME` block at the top of
-`webapp/templates/base.html`. They are currently **neutral placeholders, not 1Now's brand**.
-The site could not be reached from the build environment, so the exact palette and typefaces
-have not been applied. To rebrand, change the variables in that block and add the font link.
+Colours and fonts live in one place: the `THEME` block at the top of `webapp/templates/base.html`.
+
+**Colours** follow the 1now.ai site. They were sampled from a screenshot (the site could not be
+reached from the build environment), so treat them as close, not exact:
+
+| Use | Value | Source |
+|---|---|---|
+| Main text and headings | `#14253A` | Exact: read from the site's computed style |
+| Orange (buttons, accents) | `#F47845` | Sampled from the screenshot |
+| Header bar | `#121F2F` | Sampled |
+| Page background / cards | `#FAF8F4` / `#FFFFFF` | Sampled |
+| Darker orange for small text and links | `#B8481A` | Derived, so it passes contrast on white |
+| Muted text, borders, hover orange, tints | `#5E6B7A`, `#E7E2D8`, `#E4642F`, `#FDF1E9` | Derived |
+
+Style choices copied from the site: dark navy header, pill-shaped orange buttons, large rounded
+white cards with soft shadows, and small orange uppercase section labels. The urgent banner stays
+**red** on purpose, so it cannot be mistaken for the orange brand colour. A dark-mode palette is
+included.
+
+**Known gap: white text on the orange buttons has a contrast ratio of 2.76:1** (WCAG asks for 4.5:1).
+That matches the site, so it is the default. To fix it, set `--on-brand: #14253A` in the theme
+block, which gives 5.62:1. Every other colour pair passes.
+
+**Fonts are not applied yet.** The typefaces could not be identified from a screenshot, so the app
+uses the system font. Once the names are known, set `--font-body` and `--font-heading` and add the
+font link above the `<style>` tag.
 
 ## Project layout
 
