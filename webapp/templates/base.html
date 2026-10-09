@@ -36,6 +36,7 @@
     .field { margin-bottom: 16px; }
     .field.has-error input, .field.has-error textarea { border-color: var(--err); border-width: 2px; }
     .error { color: var(--err); font-weight: 600; margin: 4px 0 0; }
+    p.error[role=alert] { margin: 0 0 16px; }
     .hint { color: var(--muted); font-size: .9rem; margin: 0 0 4px; }
     fieldset { border: 0; padding: 0; margin: 0 0 16px; }
     .radio { display: inline-flex; align-items: center; gap: 6px; margin-right: 20px; font-weight: 400; }
@@ -53,6 +54,7 @@
     ul { padding-left: 22px; margin: 6px 0; }
     table { width: 100%; min-width: 640px; border-collapse: collapse; font-size: .92rem; }
     th, td { text-align: left; vertical-align: top; padding: 8px 6px; border-bottom: 1px solid var(--line); }
+    td:first-child { white-space: nowrap; }
     tr:target { background: var(--info-bg); }
     .pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-weight: 600; font-size: .82rem; }
     .scroll { overflow-x: auto; }
